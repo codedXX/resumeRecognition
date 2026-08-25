@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+backend/.venv/
+
+# Local configuration and runtime data
+.env
+backend/.env
+*.db
+*.sqlite
+*.sqlite3
+uploads/
+backend/uploads/
+
+# Frontend build and tooling artifacts
+frontend/node_modules/
+frontend/dist/
+*.tsbuildinfo
+
+# OS/editor files
+.DS_Store
+.idea/
+.vscode/
