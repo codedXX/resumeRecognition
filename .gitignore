@@ -10,6 +10,9 @@ backend/.env
 *.db
 *.sqlite
 *.sqlite3
+backend/data/roles.json
+backend/data/roles.json.lock
+backend/data/roles.json.tmp
 uploads/
 backend/uploads/
 
@@ -17,6 +20,18 @@ backend/uploads/
 frontend/node_modules/
 frontend/dist/
 *.tsbuildinfo
+node_modules/
+.npm-cache/
+/frontend/frontend/
+
+# Test, agent, and local runtime artifacts
+.pytest_cache/
+.superpowers/
+*.log
+*.pid
+/data/*.json
+/data/*.lock
+backend/data/
 
 # OS/editor files
 .DS_Store
