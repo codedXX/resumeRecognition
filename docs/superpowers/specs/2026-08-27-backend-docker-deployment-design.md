@@ -12,7 +12,7 @@
 
 - 在 `backend/Dockerfile` 中使用 Python 3.12 slim 基础镜像并安装 `requirements.txt` 中的运行时依赖。应用使用 Docker 默认用户运行，以确保可写入宿主机挂载的 `data/` 目录。
 - 容器工作目录设为 `/app`，启动命令固定为单 worker 的 Uvicorn：`app.main:app --host 0.0.0.0 --port 8000 --workers 1`。
-- `backend/compose.yml` 使用当前目录 Dockerfile 构建镜像，保留端口 `8000:8000` 与重启策略。
+- `backend/compose.yml` 使用由 `docker load` 导入的本地镜像 `resume-backend:local`，保留端口 `8000:8000` 与重启策略；Dockerfile 仅在本地打包镜像时使用。
 - Compose 将 `./data` 挂载为容器 `/data`，并通过 `ROLES_FILE=/data/roles.json` 使岗位规则在容器重建或服务重启后保留。
 - `.env.production` 仅由 Compose 在运行时加载，不能复制进镜像；`.dockerignore` 还会排除虚拟环境、缓存和测试产物。
 

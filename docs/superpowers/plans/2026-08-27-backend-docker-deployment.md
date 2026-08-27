@@ -4,13 +4,13 @@
 
 **Goal:** Package the FastAPI backend as a deployable Docker image and make the existing Compose deployment persist role data on the server.
 
-**Architecture:** Build from `backend/` with Python 3.12 slim, install declared dependencies, and start Uvicorn with one worker. Compose injects runtime environment values and bind-mounts the server's `data/` directory to `/data`, selected by `ROLES_FILE`.
+**Architecture:** Build the backend image locally from `backend/` with Python 3.12 slim, then export and import it on the server as `resume-backend:local`. Compose starts that local image, injects runtime environment values, and bind-mounts the server's `data/` directory to `/data`, selected by `ROLES_FILE`.
 
 **Tech Stack:** Docker, Docker Compose, Python 3.12, FastAPI, Uvicorn.
 
 ## Global Constraints
 
-- Build and run commands execute in `/opt/resumeRecognition/backend` on the server.
+- `docker save` runs locally; `docker load` and Compose run in `/opt/resumeRecognition/backend` on the server.
 - The API uses exactly one Uvicorn worker because batch state is held in process memory.
 - `.env.production` must not be included in the image.
 - `data/roles.json` persists through the host `./data` directory.
@@ -87,23 +87,20 @@ git commit -m "build: add backend docker image"
 
 **Interfaces:**
 - Consumes: `backend/Dockerfile`, `backend/.env.production`, host directory `backend/data/`
-- Produces: `docker compose up -d --build` deployment exposing port `8000` and storing roles in `/data/roles.json`.
+- Produces: `docker compose up -d --no-build --pull never` deployment exposing port `8000` and storing roles in `/data/roles.json`.
 
 - [ ] **Step 1: Verify the current Compose configuration does not select the mounted data path**
 
 Run: `docker compose -f backend/compose.yml config`
 
-Expected: PASS, but the rendered `backend` environment does not contain `ROLES_FILE=/data/roles.json` and no `build` section is present.
+Expected: PASS, but the rendered `backend` environment does not contain `ROLES_FILE=/data/roles.json` and it references the wrong image tag.
 
 - [ ] **Step 2: Replace the `backend` service in `backend/compose.yml`**
 
 ```yaml
 services:
   backend:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    image: resume-backend:20260827
+    image: resume-backend:local
     container_name: resume-backend
     restart: unless-stopped
     env_file:
@@ -120,11 +117,11 @@ services:
 
 Run: `docker compose -f backend/compose.yml config`
 
-Expected: PASS; output includes `build.context`, `ROLES_FILE: /data/roles.json`, `./data:/data`, `8000:8000`, and `.env.production` is only an `env_file`.
+Expected: PASS; output includes `image: resume-backend:local`, `ROLES_FILE: /data/roles.json`, `./data:/data`, `8000:8000`, and `.env.production` is only an `env_file`.
 
 - [ ] **Step 4: Build and start the server deployment**
 
-Run from `/opt/resumeRecognition/backend`: `docker compose up -d --build`
+Run from `/opt/resumeRecognition/backend`: `docker compose up -d --no-build --pull never`
 
 Expected: PASS; the `resume-backend` container is running and has one Uvicorn worker.
 

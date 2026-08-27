@@ -1,9 +1,6 @@
 services:
   backend:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    image: resume-backend:20260827
+    image: resume-backend:local
     container_name: resume-backend
     restart: unless-stopped
     env_file:
