@@ -1,0 +1,11 @@
+services:
+  backend:
+    image: resume-backend:20260826
+    container_name: resume-backend
+    restart: unless-stopped
+    env_file:
+      - ./.env.production
+    volumes:
+      - ./data:/data
+    ports:
+      - "8000:8000"
