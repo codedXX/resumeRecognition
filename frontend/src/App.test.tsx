@@ -37,6 +37,22 @@ describe("recruiter workbench", () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
+  it("rejects an over-limit selection before beginning upload", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify([]), { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+    renderApp();
+    const input = document.querySelector("input[type=file]");
+    if (!input) throw new Error("file input not found");
+    const files = Array.from({ length: 6 }, (_, index) => new File(["resume"], `resume-${index + 1}.pdf`, { type: "application/pdf" }));
+
+    fireEvent.change(input, { target: { files } });
+
+    expect(await screen.findByRole("alertdialog")).toHaveTextContent("单次最多上传 5 个文件");
+    expect(screen.getByRole("alertdialog")).toHaveTextContent("当前选择 6 个文件");
+    expect(screen.getByRole("button", { name: "重新选择文件" })).toBeInTheDocument();
+    expect(fetchMock.mock.calls.some(([, init]) => (init as RequestInit | undefined)?.method === "POST")).toBe(false);
+  });
+
   it("summarizes partial upload failures without claiming all files are ready", async () => {
     const batch = {
       id: "batch-1", status: "pending", profile_id: null, criteria_snapshot: null,
@@ -90,22 +106,27 @@ describe("recruiter workbench", () => {
     expect(screen.getByText("notes.txt")).toBeInTheDocument();
   });
 
-  it("keeps a successful upload as a next-step status message", async () => {
+  it("keeps a five-file selection on the successful upload path", async () => {
     const batch = { id: "batch-success", status: "pending", profile_id: null, criteria_snapshot: null, files: [], counts: { pending: 0, ready: 0, processing: 0, completed: 0, failed: 0, unreadable: 0 } };
     const readyFile = { id: "file-ready", original_name: "ok.pdf", status: "ready", error: null };
+    let uploadedFileCount = 0;
     vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
       const url = String(input);
       if (url.endsWith("/api/roles")) return new Response(JSON.stringify([]), { status: 200 });
       if (init?.method === "POST" && url.endsWith("/api/batches")) return new Response(JSON.stringify(batch), { status: 201 });
-      if (init?.method === "POST" && url.endsWith("/api/batches/batch-success/files")) return new Response(JSON.stringify([readyFile]), { status: 201 });
+      if (init?.method === "POST" && url.endsWith("/api/batches/batch-success/files")) {
+        uploadedFileCount = (init.body as FormData).getAll("files").length;
+        return new Response(JSON.stringify([readyFile]), { status: 201 });
+      }
       if (url.endsWith("/api/batches/batch-success")) return new Response(JSON.stringify({ ...batch, files: [readyFile], counts: { ...batch.counts, ready: 1 } }), { status: 200 });
       return new Response(JSON.stringify([]), { status: 200 });
     }));
     renderApp();
     const input = document.querySelector("input[type=file]");
     if (!input) throw new Error("file input not found");
-    fireEvent.change(input, { target: { files: [new File(["a"], "ok.pdf")] } });
+    fireEvent.change(input, { target: { files: Array.from({ length: 5 }, (_, index) => new File(["a"], `ok-${index + 1}.pdf`)) } });
     expect(await screen.findByRole("status")).toHaveTextContent("文件已准备完成；选择岗位后可开始评估。");
+    expect(uploadedFileCount).toBe(5);
   });
 
   it("opens a role form with the documented default score", async () => {

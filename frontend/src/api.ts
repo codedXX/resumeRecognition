@@ -1,4 +1,4 @@
-export const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
+export const API_URL = import.meta.env.VITE_API_URL;
 
 export type Requirement = { id: string; description: string; priority: "required" | "preferred"; position: number };
 export type Role = { id: string; name: string; evaluation_prompt: string; passing_score: number; archived: boolean; requirements: Requirement[] };

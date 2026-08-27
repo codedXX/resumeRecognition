@@ -9,6 +9,7 @@ type DraftRequirement = { id?: string; description: string; priority: string };
 type RoleDraft = { name: string; evaluation_prompt: string; passing_score: number; requirements: DraftRequirement[] };
 const emptyDraft: RoleDraft = { name: "", evaluation_prompt: "", passing_score: 80, requirements: [] };
 const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
+const MAX_FILES_PER_SELECTION = 5;
 const ACCEPTED_EXTENSIONS = [".pdf", ".docx"];
 type NoticeTone = "success" | "warning" | "error";
 type Notice = { tone: NoticeTone; message: string };
@@ -83,6 +84,15 @@ export function App() {
   }, [roleAttention, uploadFeedback, roleId]);
 
   const handleFilesSelected = (files: File[]) => {
+    if (files.length > MAX_FILES_PER_SELECTION) {
+      setUploadFeedback({
+        issues: [{ fileName: "本次选择的文件", reason: `单次最多上传 ${MAX_FILES_PER_SELECTION} 个文件`, detail: `当前选择 ${files.length} 个文件，请最多选择 ${MAX_FILES_PER_SELECTION} 个文件后重试。` }],
+        readyCount: 0,
+        totalCount: files.length,
+      });
+      setNotice({ tone: "error", message: "文件未上传，请根据提示重新选择文件。" });
+      return;
+    }
     const { accepted, issues } = preflightFiles(files);
     if (!accepted.length) {
       setUploadFeedback({ issues, readyCount: 0, totalCount: files.length });
@@ -121,7 +131,7 @@ export function App() {
       <section className="results-panel" data-review-region="candidates">
         <div className="result-toolbar"><div><p className="eyebrow">候选人</p><h2>候选人审阅记录</h2><p className="section-caption">{batch.data?.criteria_snapshot?.name ?? "选择岗位后开始"}</p></div><div className="filters" aria-label="结果筛选">{[["all", "全部"], ["qualified", "+ 合格"], ["unqualified", "- 不合格"], ["failed", "! 失败"]].map(([value, label]) => <button key={value} className={filter === value ? "active" : ""} onClick={() => setFilter(value)}>{label}</button>)}</div></div>
         <div className="candidate-list" role="list">{visibleCandidates.map((candidate) => <CandidateRow key={candidate.file.id} candidate={candidate} threshold={batch.data?.criteria_snapshot?.passing_score} selected={selected?.file.id === candidate.file.id} onSelect={() => setSelected(candidate)} />)}</div>
-        {!visibleCandidates.length && <div className="result-empty"><span className="empty-marker">&gt;_</span><p>上传并启动评估后，候选人的证据会出现在这里。</p></div>}
+        {!visibleCandidates.length && <div className="result-empty"><p>上传并启动评估后，候选人的证据会出现在这里。</p></div>}
       </section>
       <aside className="evidence-panel" data-review-region="evidence">{selected ? <EvidenceDetail candidate={selected} threshold={batch.data?.criteria_snapshot?.passing_score ?? 80} /> : <div className="evidence-empty"><span className="evidence-label">证据对照</span><h2>选择一份简历</h2><p>分数、理由和简历原文证据会在同一条评估轨道上呈现。</p><div className="evidence-empty-code"><span>01</span> 等待候选人选择<br /><span>02</span> 等待评估结果</div></div>}</aside>
     </section>
