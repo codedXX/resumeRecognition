@@ -1,10 +1,15 @@
 services:
   backend:
-    image: resume-backend:20260826
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: resume-backend:20260827
     container_name: resume-backend
     restart: unless-stopped
     env_file:
       - ./.env.production
+    environment:
+      ROLES_FILE: /data/roles.json
     volumes:
       - ./data:/data
     ports:
