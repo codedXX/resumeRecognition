@@ -1,0 +1,85 @@
+{
+  "version": 1,
+  "roles": [
+    {
+      "id": "4473a2ab-bbf4-4fab-9eae-b5a4d4dca6b9",
+      "name": "岗位 0",
+      "evaluation_prompt": "评分",
+      "passing_score": 80,
+      "archived": false,
+      "created_at": "2026-08-27T03:43:02.897320+00:00",
+      "updated_at": "2026-08-27T03:43:02.897320+00:00",
+      "requirements": []
+    },
+    {
+      "id": "1a77b435-5abe-4126-bd80-3a8f6ed42b8a",
+      "name": "岗位 1",
+      "evaluation_prompt": "评分",
+      "passing_score": 80,
+      "archived": false,
+      "created_at": "2026-08-27T03:43:02.899493+00:00",
+      "updated_at": "2026-08-27T03:43:02.899493+00:00",
+      "requirements": []
+    },
+    {
+      "id": "ce301cc5-facf-465a-b22c-23b8411c1484",
+      "name": "岗位 4",
+      "evaluation_prompt": "评分",
+      "passing_score": 80,
+      "archived": false,
+      "created_at": "2026-08-27T03:43:02.906897+00:00",
+      "updated_at": "2026-08-27T03:43:02.906897+00:00",
+      "requirements": []
+    },
+    {
+      "id": "c93760cd-150b-4f9a-ac9d-ce68aaf0e3cc",
+      "name": "岗位 5",
+      "evaluation_prompt": "评分",
+      "passing_score": 80,
+      "archived": false,
+      "created_at": "2026-08-27T03:43:02.909983+00:00",
+      "updated_at": "2026-08-27T03:43:02.909983+00:00",
+      "requirements": []
+    },
+    {
+      "id": "b14748cc-9b9a-40b2-ac69-6868ec3f1b5e",
+      "name": "岗位 6",
+      "evaluation_prompt": "评分",
+      "passing_score": 80,
+      "archived": false,
+      "created_at": "2026-08-27T03:43:02.918664+00:00",
+      "updated_at": "2026-08-27T03:43:02.918664+00:00",
+      "requirements": []
+    },
+    {
+      "id": "1d6ba1e3-5db9-4033-b48b-4ad626da7c30",
+      "name": "岗位 7",
+      "evaluation_prompt": "评分",
+      "passing_score": 80,
+      "archived": false,
+      "created_at": "2026-08-27T03:43:02.924225+00:00",
+      "updated_at": "2026-08-27T03:43:02.924225+00:00",
+      "requirements": []
+    },
+    {
+      "id": "78d61acc-dc28-4600-8df7-5f42fa34eba9",
+      "name": "岗位 3",
+      "evaluation_prompt": "评分",
+      "passing_score": 80,
+      "archived": false,
+      "created_at": "2026-08-27T03:43:03.916084+00:00",
+      "updated_at": "2026-08-27T03:43:03.916084+00:00",
+      "requirements": []
+    },
+    {
+      "id": "931c5c8b-e71e-478f-8532-b69b8ee1e34a",
+      "name": "岗位 2",
+      "evaluation_prompt": "评分",
+      "passing_score": 80,
+      "archived": false,
+      "created_at": "2026-08-27T03:43:03.922180+00:00",
+      "updated_at": "2026-08-27T03:43:03.922180+00:00",
+      "requirements": []
+    }
+  ]
+}

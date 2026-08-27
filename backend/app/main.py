@@ -312,6 +312,14 @@ def create_app(runtime_settings: Settings | None = None) -> FastAPI:
         background_tasks.add_task(evaluate_batch, runtime_store, active_settings, batch.id)
         return serialise_batch(batch)
 
+    @app.delete("/api/batches/{batch_id}", status_code=status.HTTP_204_NO_CONTENT)
+    def delete_terminal_batch(batch_id: str):
+        expire_pending_batches(runtime_store, active_settings)
+        batch = locate_batch(runtime_store, batch_id)
+        if batch.status not in {"completed", "expired"}:
+            raise HTTPException(status_code=409, detail="仅已完成或已过期的批次可以开始新一轮评估")
+        runtime_store.remove_batch(batch_id)
+
     @app.get("/api/batches/{batch_id}", response_model=BatchOut)
     def get_batch(batch_id: str):
         expire_pending_batches(runtime_store, active_settings)

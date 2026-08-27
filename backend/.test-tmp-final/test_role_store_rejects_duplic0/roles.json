@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "roles": [
+    {
+      "id": "aea6f23b-0956-48bb-a4c0-202696649e3f",
+      "name": "同名岗位",
+      "evaluation_prompt": "评分",
+      "passing_score": 80,
+      "archived": false,
+      "created_at": "2026-08-27T03:43:02.874922+00:00",
+      "updated_at": "2026-08-27T03:43:02.874922+00:00",
+      "requirements": []
+    }
+  ]
+}

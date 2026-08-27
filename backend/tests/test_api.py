@@ -148,6 +148,37 @@ def test_expired_pending_batch_purges_text_and_rejects_start(tmp_path):
     assert runtime_batch.files[0].extracted_text is None
 
 
+def test_deleting_completed_batch_removes_its_results_and_evidence(tmp_path):
+    client = make_client(tmp_path)
+    role = create_role(client)
+    batch = client.post("/api/batches").json()
+    client.post(
+        f"/api/batches/{batch['id']}/files",
+        files=[("files", ("completed.docx", make_docx("Python FastAPI Docker 五年经验"), "application/vnd.openxmlformats-officedocument.wordprocessingml.document"))],
+    )
+    client.post(f"/api/batches/{batch['id']}/start", json={"profile_id": role["id"]})
+    evaluation_id = client.get(f"/api/batches/{batch['id']}/results").json()[0]["evaluation"]["id"]
+
+    removed = client.delete(f"/api/batches/{batch['id']}")
+
+    assert removed.status_code == 204
+    assert client.get(f"/api/batches/{batch['id']}").status_code == 404
+    assert client.get(f"/api/batches/{batch['id']}/results").status_code == 404
+    assert client.get(f"/api/evaluations/{evaluation_id}").status_code == 404
+
+
+def test_deleting_pending_or_processing_batch_is_rejected_without_removing_it(tmp_path):
+    client = make_client(tmp_path)
+    pending = client.post("/api/batches").json()
+    processing = client.post("/api/batches").json()
+    client.app.state.runtime_store.get_batch(processing["id"]).status = "processing"
+
+    assert client.delete(f"/api/batches/{pending['id']}").status_code == 409
+    assert client.get(f"/api/batches/{pending['id']}").status_code == 200
+    assert client.delete(f"/api/batches/{processing['id']}").status_code == 409
+    assert client.get(f"/api/batches/{processing['id']}").status_code == 200
+
+
 def test_criteria_snapshot_and_threshold_boundary(tmp_path):
     client = make_client(tmp_path)
     role = create_role(client, threshold=85)

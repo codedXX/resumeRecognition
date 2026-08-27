@@ -1,0 +1,1 @@
+{"version": 1, "roles": [{"id": "r", "name": "\u5c97\u4f4d", "evaluation_prompt": "\u8bc4\u5206", "passing_score": 101, "archived": false, "requirements": [{"id": "q", "description": "Python", "priority": "other", "position": 0}]}]}

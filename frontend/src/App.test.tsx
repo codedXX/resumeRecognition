@@ -211,8 +211,7 @@ describe("recruiter workbench", () => {
     renderApp();
     expect(await screen.findByText("候选人审阅记录")).toBeInTheDocument();
     expect(screen.getAllByText("证据对照").length).toBeGreaterThan(0);
-    expect(screen.getByText("> 选择一份简历")).toBeInTheDocument();
-    expect(screen.getByText("招聘评估 / 证据优先")).toBeInTheDocument();
+    expect(screen.getByText("选择一份简历")).toBeInTheDocument();
     expect(screen.getByText("文件队列")).toBeInTheDocument();
     expect(screen.queryByText("/ 文件队列")).not.toBeInTheDocument();
     expect(screen.queryByText("/ 候选人")).not.toBeInTheDocument();
@@ -268,5 +267,103 @@ describe("recruiter workbench", () => {
     expect(await screen.findByText(/本批次已过期/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "关闭" }));
     expect(screen.getByRole("button", { name: "开始评估" })).toBeDisabled();
+  });
+
+  it("displays both red upload limits before a file is selected", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify([]), { status: 200 })));
+    renderApp();
+
+    const selectionLimit = await screen.findByText("单次上传上限为 5 个文件");
+    const sizeLimit = screen.getByText("单文件上限 10 MB");
+
+    expect(selectionLimit).toHaveClass("upload-limit");
+    expect(sizeLimit).toHaveClass("upload-limit");
+  });
+
+  it("starts a new cycle by deleting a completed batch before creating the next upload batch", async () => {
+    const role = { id: "role-1", name: "Python 后端工程师", evaluation_prompt: "引用原文", passing_score: 80, archived: false, requirements: [] };
+    const completedFile = { id: "file-1", original_name: "first.pdf", status: "completed", error: null };
+    const completedBatch = { id: "batch-completed", status: "completed", profile_id: role.id, criteria_snapshot: { name: role.name, passing_score: 80, requirements: [] }, files: [completedFile], counts: { pending: 0, ready: 0, processing: 0, completed: 1, failed: 0, unreadable: 0 } };
+    const candidate = { file: completedFile, evaluation: { id: "evaluation-1", score: 92, qualified: true, reason: "经验匹配", satisfied: [], unmet: [], evidence: [], provider: "heuristic", error: null } };
+    const nextBatch = { id: "batch-next", status: "pending", profile_id: null, criteria_snapshot: null, files: [], counts: { pending: 0, ready: 0, processing: 0, completed: 0, failed: 0, unreadable: 0 } };
+    const nextFile = { id: "file-2", original_name: "next.pdf", status: "ready", error: null };
+    const calls: Array<{ url: string; method: string }> = [];
+    let createdBatches = 0;
+    vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      const method = init?.method ?? "GET";
+      calls.push({ url, method });
+      if (url.endsWith("/api/roles")) return new Response(JSON.stringify([role]), { status: 200 });
+      if (method === "POST" && url.endsWith("/api/batches")) {
+        createdBatches += 1;
+        return new Response(JSON.stringify(createdBatches === 1 ? { ...completedBatch, files: [], counts: { pending: 0, ready: 0, processing: 0, completed: 0, failed: 0, unreadable: 0 } } : nextBatch), { status: 201 });
+      }
+      if (method === "POST" && url.endsWith("/api/batches/batch-completed/files")) return new Response(JSON.stringify([completedFile]), { status: 201 });
+      if (method === "POST" && url.endsWith("/api/batches/batch-next/files")) return new Response(JSON.stringify([nextFile]), { status: 201 });
+      if (method === "DELETE" && url.endsWith("/api/batches/batch-completed")) return new Response(null, { status: 204 });
+      if (url.endsWith("/api/batches/batch-completed/results")) return new Response(JSON.stringify([candidate]), { status: 200 });
+      if (url.endsWith("/api/batches/batch-completed")) return new Response(JSON.stringify(completedBatch), { status: 200 });
+      if (url.endsWith("/api/batches/batch-next")) return new Response(JSON.stringify({ ...nextBatch, files: [nextFile], counts: { ...nextBatch.counts, ready: 1 } }), { status: 200 });
+      if (url.endsWith("/api/batches/batch-next/results")) return new Response(JSON.stringify([{ file: nextFile, evaluation: null }]), { status: 200 });
+      return new Response(JSON.stringify({}), { status: 200 });
+    }));
+    const view = renderApp();
+    const input = view.container.querySelector("input[type=file]");
+    if (!input) throw new Error("file input not found");
+    fireEvent.change(input, { target: { files: [new File(["resume"], "first.pdf", { type: "application/pdf" })] } });
+
+    fireEvent.click(await screen.findByRole("button", { name: "开始新一轮评估" }));
+    await waitFor(() => expect(calls).toContainEqual({ url: expect.stringMatching(/\/api\/batches\/batch-completed$/), method: "DELETE" }));
+    expect(screen.getByText("还没有简历。先添加文件，再选择岗位标准。")).toBeInTheDocument();
+
+    fireEvent.change(input, { target: { files: [new File(["resume"], "next.pdf", { type: "application/pdf" })] } });
+    await waitFor(() => expect(calls).toContainEqual({ url: expect.stringMatching(/\/api\/batches\/batch-next\/files$/), method: "POST" }));
+  });
+
+  it("does not offer a new-cycle action while the batch is still pending", async () => {
+    const pendingBatch = { id: "batch-pending", status: "pending", profile_id: null, criteria_snapshot: null, files: [], counts: { pending: 0, ready: 0, processing: 0, completed: 0, failed: 0, unreadable: 0 } };
+    const readyFile = { id: "file-ready", original_name: "pending.pdf", status: "ready", error: null };
+    vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      const method = init?.method ?? "GET";
+      if (url.endsWith("/api/roles")) return new Response(JSON.stringify([]), { status: 200 });
+      if (method === "POST" && url.endsWith("/api/batches")) return new Response(JSON.stringify(pendingBatch), { status: 201 });
+      if (method === "POST" && url.endsWith("/api/batches/batch-pending/files")) return new Response(JSON.stringify([readyFile]), { status: 201 });
+      if (url.endsWith("/api/batches/batch-pending")) return new Response(JSON.stringify({ ...pendingBatch, files: [readyFile], counts: { ...pendingBatch.counts, ready: 1 } }), { status: 200 });
+      return new Response(JSON.stringify([]), { status: 200 });
+    }));
+    const view = renderApp();
+    const input = view.container.querySelector("input[type=file]");
+    if (!input) throw new Error("file input not found");
+    fireEvent.change(input, { target: { files: [new File(["resume"], "pending.pdf", { type: "application/pdf" })] } });
+
+    await screen.findByText("pending.pdf");
+    expect(screen.queryByRole("button", { name: "开始新一轮评估" })).not.toBeInTheDocument();
+  });
+
+  it("keeps completed results visible when starting a new cycle fails", async () => {
+    const completedFile = { id: "file-1", original_name: "failed-reset.pdf", status: "completed", error: null };
+    const completedBatch = { id: "batch-completed", status: "completed", profile_id: null, criteria_snapshot: null, files: [completedFile], counts: { pending: 0, ready: 0, processing: 0, completed: 1, failed: 0, unreadable: 0 } };
+    const candidate = { file: completedFile, evaluation: { id: "evaluation-1", score: 92, qualified: true, reason: "经验匹配", satisfied: [], unmet: [], evidence: [], provider: "heuristic", error: null } };
+    vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      const method = init?.method ?? "GET";
+      if (url.endsWith("/api/roles")) return new Response(JSON.stringify([]), { status: 200 });
+      if (method === "POST" && url.endsWith("/api/batches")) return new Response(JSON.stringify({ ...completedBatch, files: [], counts: { pending: 0, ready: 0, processing: 0, completed: 0, failed: 0, unreadable: 0 } }), { status: 201 });
+      if (method === "POST" && url.endsWith("/api/batches/batch-completed/files")) return new Response(JSON.stringify([completedFile]), { status: 201 });
+      if (method === "DELETE" && url.endsWith("/api/batches/batch-completed")) return new Response(JSON.stringify({ detail: "批次暂不可清理" }), { status: 409 });
+      if (url.endsWith("/api/batches/batch-completed/results")) return new Response(JSON.stringify([candidate]), { status: 200 });
+      if (url.endsWith("/api/batches/batch-completed")) return new Response(JSON.stringify(completedBatch), { status: 200 });
+      return new Response(JSON.stringify({}), { status: 200 });
+    }));
+    const view = renderApp();
+    const input = view.container.querySelector("input[type=file]");
+    if (!input) throw new Error("file input not found");
+    fireEvent.change(input, { target: { files: [new File(["resume"], "failed-reset.pdf", { type: "application/pdf" })] } });
+
+    fireEvent.click(await screen.findByRole("button", { name: "开始新一轮评估" }));
+
+    expect(await screen.findByText(/批次暂不可清理.*当前结果仍保留/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /failed-reset/ })).toBeInTheDocument();
   });
 });

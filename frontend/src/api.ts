@@ -26,6 +26,7 @@ export const api = {
   deleteRequirement: (roleId: string, requirementId: string) => request<void>(`/api/roles/${roleId}/requirements/${requirementId}`, { method: "DELETE" }),
   reorderRequirements: (roleId: string, requirement_ids: string[]) => request<Requirement[]>(`/api/roles/${roleId}/requirements/reorder`, { method: "POST", body: JSON.stringify({ requirement_ids }) }),
   createBatch: () => request<Batch>("/api/batches", { method: "POST" }),
+  deleteBatch: (id: string) => request<void>(`/api/batches/${id}`, { method: "DELETE" }),
   upload: async (batchId: string, files: File[]) => {
     const body = new FormData(); files.forEach((file) => body.append("files", file));
     const response = await fetch(`${API_URL}/api/batches/${batchId}/files`, { method: "POST", body });

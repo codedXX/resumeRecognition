@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "roles": [
+    {
+      "id": "6e37cb17-9dbc-4509-80c4-d5c1b4d357b6",
+      "name": "Python 后端工程师",
+      "evaluation_prompt": "根据岗位要求评分",
+      "passing_score": 80,
+      "archived": false,
+      "created_at": "2026-08-27T03:43:02.839606+00:00",
+      "updated_at": "2026-08-27T03:43:02.839606+00:00",
+      "requirements": [
+        {
+          "id": "3b4108d9-bce9-4f0d-b54a-3e0546c9b475",
+          "description": "Python",
+          "priority": "required",
+          "position": 0
+        }
+      ]
+    }
+  ]
+}

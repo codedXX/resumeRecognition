@@ -1,0 +1,28 @@
+{
+  "version": 1,
+  "roles": [
+    {
+      "id": "b46aa6e2-8307-420c-9550-c5c500a42367",
+      "name": "Python 后端工程师",
+      "evaluation_prompt": "评估候选人的 Python 后端能力",
+      "passing_score": 80,
+      "archived": false,
+      "created_at": "2026-08-27T03:42:57.943113+00:00",
+      "updated_at": "2026-08-27T03:42:57.943113+00:00",
+      "requirements": [
+        {
+          "id": "369a9035-1c0c-497c-afc7-d953a94930ce",
+          "description": "Python FastAPI",
+          "priority": "required",
+          "position": 0
+        },
+        {
+          "id": "d777c1e8-2343-4d0d-ab15-2706f594308e",
+          "description": "Docker",
+          "priority": "preferred",
+          "position": 1
+        }
+      ]
+    }
+  ]
+}

@@ -210,6 +210,8 @@ body { font-family: "Noto Sans SC", "Microsoft YaHei", sans-serif; font-size: 15
 .dropzone { border-radius: var(--radius-md); }
 .dropzone span { font-family: "Noto Sans SC", "Microsoft YaHei", sans-serif; font-size: 14px; }
 .dropzone small, .file-list small, .start-help { font-family: "Noto Sans SC", "Microsoft YaHei", sans-serif; font-size: 12px; }
+.upload-limit { color: var(--orange); font-weight: 700; }
+.reset-cycle { width: 100%; margin-top: 9px; }
 .file-list b { font-family: "Noto Sans SC", "Microsoft YaHei", sans-serif; font-size: 14px; }
 .empty-copy { font-family: "Noto Sans SC", "Microsoft YaHei", sans-serif; font-size: 14px; }
 .primary-action { border-radius: var(--radius-sm); font-family: "Noto Sans SC", "Microsoft YaHei", sans-serif; font-size: 13px; min-height: 40px; }

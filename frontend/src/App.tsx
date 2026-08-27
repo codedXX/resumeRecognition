@@ -78,6 +78,20 @@ export function App() {
     onSuccess: () => { client.invalidateQueries({ queryKey: ["batch", batchId] }); client.invalidateQueries({ queryKey: ["results", batchId] }); setNotice({ tone: "success", message: "评估已开始。此结果仅供人工复核，不会自动作出招聘决定。" }); },
     onError: (error: Error) => setNotice({ tone: "error", message: `${error.message}。请稍后重试，失败详情仍保留在队列中。` }),
   });
+  const resetCycle = useMutation({
+    mutationFn: (id: string) => api.deleteBatch(id),
+    onSuccess: (_, id) => {
+      client.removeQueries({ queryKey: ["batch", id] });
+      client.removeQueries({ queryKey: ["results", id] });
+      setBatchId(null);
+      setSelected(null);
+      setFilter("all");
+      setNotice(null);
+      setUploadFeedback(null);
+      setRoleAttention(false);
+    },
+    onError: (error: Error) => setNotice({ tone: "error", message: `${error.message}。未能开始新一轮评估，当前结果仍保留。` }),
+  });
 
   useEffect(() => {
     if (roleAttention && !uploadFeedback && !roleId) roleSelectRef.current?.focus();
@@ -105,7 +119,8 @@ export function App() {
   const selectedRole = roles.data?.find((role) => role.id === roleId);
   const startAllowed = canStart(batch.data ?? null, roleId);
   const hasReadableFile = Boolean(batch.data?.files.some((file) => file.status === "ready"));
-  const startHelp = batch.data?.status === "expired" ? "本批次已过期，临时解析文本已清理，请重新上传。" : batch.data?.status === "processing" ? "评估进行中，请等待当前批次完成。" : batch.data?.status === "completed" ? "本批次已完成；如需重新评估，请重新上传文件。" : !roleId ? "请先选择岗位。" : !hasReadableFile ? "请添加至少一份可读取的 PDF 或 DOCX。" : "当前批次暂时无法开始评估，请稍后重试。";
+  const canResetCycle = batch.data?.status === "completed" || batch.data?.status === "expired";
+  const startHelp = batch.data?.status === "expired" ? "本批次已过期。开始新一轮评估后可重新上传文件。" : batch.data?.status === "processing" ? "评估进行中，请等待当前批次完成。" : batch.data?.status === "completed" ? "本批次已完成。开始新一轮评估后可重新上传文件。" : !roleId ? "请先选择岗位。" : !hasReadableFile ? "请添加至少一份可读取的 PDF 或 DOCX。" : "当前批次暂时无法开始评估，请稍后重试。";
   return <main className="app-shell">
     <header className="masthead">
       <div><p className="eyebrow">招聘评估</p><h1>简历评估档案台</h1><p className="command-line"> 评估 --岗位 {selectedRole?.name ?? "待选择岗位"}</p></div>
@@ -121,10 +136,11 @@ export function App() {
     <section className="workbench" aria-label="简历审阅工作台">
       <aside className="queue-panel" data-review-region="queue">
         <div className="section-heading"><p className="eyebrow">文件队列</p><h2>待评估简历</h2><p className="section-caption">文件准备 · 仅解析文本</p></div>
-        <label className="dropzone"><input ref={fileInputRef} type="file" accept=".pdf,.docx" multiple onChange={(event) => { if (event.target.files?.length) handleFilesSelected(Array.from(event.target.files)); event.currentTarget.value = ""; }} /><span>添加 PDF 或 DOCX</span><small>上传只解析文本，不会自动评分；单文件上限 {formatFileSize(MAX_UPLOAD_BYTES)}</small></label>
+        <label className="dropzone"><input ref={fileInputRef} type="file" accept=".pdf,.docx" multiple onChange={(event) => { if (event.target.files?.length) handleFilesSelected(Array.from(event.target.files)); event.currentTarget.value = ""; }} /><span>添加 PDF 或 DOCX</span><small>上传只解析文本，不会自动评分；<span className="upload-limit">单次上传上限为 {MAX_FILES_PER_SELECTION} 个文件</span>；<span className="upload-limit">单文件上限 10 MB</span></small></label>
         <ul className="file-list">{batch.data?.files.map((file) => <li key={file.id}><span className={`file-status ${file.status}`} aria-hidden="true">{file.status === "failed" || file.status === "unreadable" ? "-" : file.status === "completed" ? "+" : "·"}</span><div><b>{file.original_name}</b><small>{statusLabel(file.status)}{file.error ? ` · ${file.error}` : ""}</small></div></li>)}</ul>
         {!batch.data?.files.length && <p className="empty-copy">还没有简历。先添加文件，再选择岗位标准。</p>}
         <button className="primary-action" aria-label="开始评估" disabled={!startAllowed || start.isPending} onClick={() => start.mutate()}><span>&gt;</span> {start.isPending ? "正在启动…" : "开始评估"}</button>
+        {canResetCycle && <button className="quiet-button reset-cycle" disabled={resetCycle.isPending} onClick={() => resetCycle.mutate(batchId!)}>{resetCycle.isPending ? "正在开始新一轮…" : "开始新一轮评估"}</button>}
         {!startAllowed && <p id="role-help" className={`start-help ${roleAttention ? "needs-attention" : ""}`} role="alert">{startHelp}</p>}
         {batch.data && <div className="batch-counts" aria-label="批次进度">{Object.entries(batch.data.counts).filter(([, count]) => count > 0).map(([key, count]) => <span key={key}><b>{count}</b> {statusLabel(key)}</span>)}</div>}
       </aside>
